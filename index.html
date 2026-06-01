@@ -1113,7 +1113,7 @@ function nextHolidayDate(fromStr) {
 }
 function calcNextRecurring(t) {
   if (!t.recurring) return null;
-  const rectype = t.rectype || 'interval';
+  const rectype = (t.rectype || 'interval').replace(' ', '_'); // スペース→アンダースコア対応
   if (rectype === 'monthly_day') return nextMonthlyDay(t.monthday || 25, t.excludeHoliday);
   if (rectype === 'weekly_dow') {
     if (!t.due || !t.dows || !t.dows.length) return nextWeeklyDow(t.dows || []);
@@ -1679,6 +1679,7 @@ async function addToGcal(task) {
 window.addEventListener('load', () => { setTimeout(initGcal, 1000); });
 
 // ===== HTML から呼び出せるようにwindowに登録 =====
+window.calcNextRecurring = calcNextRecurring;
 window.openEdit = openEdit;
 window.closeEdit = closeEdit;
 window.saveEdit = saveEdit;
