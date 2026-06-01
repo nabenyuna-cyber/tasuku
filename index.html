@@ -1045,60 +1045,69 @@ function toggleDone(id) {
   save(); render();
 }
 
+// 日付をYYYY-MM-DD形式で安全に返す（タイムゾーンズレなし）
+function dateToStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
 function nextDate(dateStr, interval, unit) {
-  const d = new Date(dateStr);
+  const d = new Date(dateStr + 'T00:00:00');
   if (unit === 'day') d.setDate(d.getDate() + interval);
   else if (unit === 'week') d.setDate(d.getDate() + interval * 7);
   else if (unit === 'month') d.setMonth(d.getMonth() + interval);
   else if (unit === 'month2') d.setMonth(d.getMonth() + 2);
   else if (unit === 'month6') d.setMonth(d.getMonth() + 6);
   else if (unit === 'year') d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().slice(0,10);
+  return dateToStr(d);
 }
 function nextMonthlyDay(day, excludeHol) {
-  const now = new Date();
-  now.setHours(0,0,0,0);
-  let y = now.getFullYear(), m = now.getMonth();
-  const candidate = new Date(y, m, day);
-  if (candidate < now) candidate.setMonth(candidate.getMonth() + 1);
-  let dateStr = candidate.toISOString().slice(0,10);
-  // 祝日除外なら次の平日に
+  const today = todayStr();
+  const [y, m] = today.split('-').map(Number);
+  // 今月のday日
+  let candidate = new Date(y, m - 1, day);
+  if (dateToStr(candidate) < today) {
+    candidate = new Date(y, m, day); // 来月
+  }
+  let dateStr = dateToStr(candidate);
   if (excludeHol) {
     while (isWeekendOrHoliday(dateStr)) {
-      const d = new Date(dateStr); d.setDate(d.getDate() + 1);
-      dateStr = d.toISOString().slice(0,10);
+      const d = new Date(dateStr + 'T00:00:00');
+      d.setDate(d.getDate() + 1);
+      dateStr = dateToStr(d);
     }
   }
   return dateStr;
 }
 function nextWeeklyDow(dows) {
   if (!dows.length) return '';
-  const today = todayStr(); // YYYY-MM-DD（日本時間基準）
+  const today = todayStr();
   for (let i = 0; i <= 7; i++) {
-    const d = new Date(today);
+    const d = new Date(today + 'T00:00:00');
     d.setDate(d.getDate() + i);
-    if (dows.includes(d.getDay())) return d.toISOString().slice(0,10);
+    if (dows.includes(d.getDay())) return dateToStr(d);
   }
   return '';
 }
 function nextWeekday(fromStr) {
-  const d = new Date(fromStr);
+  const d = new Date(fromStr + 'T00:00:00');
   d.setDate(d.getDate() + 1);
-  let s = d.toISOString().slice(0,10);
+  let s = dateToStr(d);
   while (isWeekendOrHoliday(s)) {
     d.setDate(d.getDate() + 1);
-    s = d.toISOString().slice(0,10);
+    s = dateToStr(d);
   }
   return s;
 }
 function nextHolidayDate(fromStr) {
-  const d = new Date(fromStr);
+  const d = new Date(fromStr + 'T00:00:00');
   d.setDate(d.getDate() + 1);
-  let s = d.toISOString().slice(0,10);
+  let s = dateToStr(d);
   for (let i = 0; i < 365; i++) {
     if (isWeekendOrHoliday(s)) return s;
     d.setDate(d.getDate() + 1);
-    s = d.toISOString().slice(0,10);
+    s = dateToStr(d);
   }
   return s;
 }
@@ -1107,14 +1116,12 @@ function calcNextRecurring(t) {
   const rectype = t.rectype || 'interval';
   if (rectype === 'monthly_day') return nextMonthlyDay(t.monthday || 25, t.excludeHoliday);
   if (rectype === 'weekly_dow') {
-    // 前回の日付の翌日から次の対象曜日を探す
     if (!t.due || !t.dows || !t.dows.length) return nextWeeklyDow(t.dows || []);
-    const from = new Date(t.due);
+    const from = new Date(t.due + 'T00:00:00');
     for (let i = 1; i <= 7; i++) {
-      const d = new Date(from);
+      const d = new Date(t.due + 'T00:00:00');
       d.setDate(from.getDate() + i);
-      const s = d.toISOString().slice(0,10);
-      if (t.dows.includes(d.getDay())) return s;
+      if (t.dows.includes(d.getDay())) return dateToStr(d);
     }
     return null;
   }
@@ -1355,9 +1362,9 @@ function renderSchedule() {
 }
 
 function addDays(dateStr, n) {
-  const d = new Date(dateStr);
+  const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0,10);
+  return dateToStr(d);
 }
 
 function taskCard(t) {
