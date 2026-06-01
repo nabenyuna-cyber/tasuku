@@ -1268,7 +1268,7 @@ function render() {
 function renderSchedule() {
   const container = document.getElementById('taskList');
   const today = todayStr();
-  const weeks = 12; // 12週間先まで表示
+  const endDate = addDays(today, 180); // 半年先まで表示
 
   // 全タスクの予定日を展開（定期タスクは先の日程も生成）
   const scheduleItems = [];
@@ -1278,8 +1278,8 @@ function renderSchedule() {
     if (t.recurring) {
       // 定期タスク：今日から12週分を展開
       let currentDue = t.due;
-      for (let i = 0; i < 30; i++) {
-        if (!currentDue || currentDue > addDays(today, weeks * 7)) break;
+      for (let i = 0; i < 60; i++) {
+        if (!currentDue || currentDue > endDate) break;
         if (currentDue >= today) {
           const key = `${t.id}_${currentDue}`;
           if (!scheduleKeys.has(key)) {
