@@ -406,7 +406,7 @@ function toggleDone(id) {
     t.status='done'; t.doneAt=todayStr();
     if(t.recurring){
       const next=calcNextRecurring(t);
-      const nextTarget=(t.rectype==='interval'&&t.target)?nextDate(t.target,t.interval,t.unit):'';
+      const nextTarget=((t.rectype||'interval').replace(/ /g,'_')==='interval'&&t.target)?nextDate(t.target,t.interval,t.unit):'';
       if(next) tasks.unshift({...t,id:Date.now()+1,status:'todo',due:next,target:nextTarget,doneAt:null,createdAt:todayStr()});
     }
   }
@@ -423,10 +423,10 @@ function nextDate(dateStr,interval,unit) {
   else if(unit==='year') d.setFullYear(d.getFullYear()+1);
   return dateToStr(d);
 }
-function nextMonthlyDay(day,excludeHol) {
-  const today=todayStr(); const [y,m]=today.split('-').map(Number);
+function nextMonthlyDay(day,excludeHol,fromDate) {
+  const ref=fromDate||todayStr(); const [y,m]=ref.split('-').map(Number);
   let candidate=new Date(y,m-1,day);
-  if(dateToStr(candidate)<today) candidate=new Date(y,m,day);
+  if(dateToStr(candidate)<=ref) candidate=new Date(y,m,day);
   let ds=dateToStr(candidate);
   if(excludeHol){while(isWeekendOrHoliday(ds)){const d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+1);ds=dateToStr(d);}}
   return ds;
@@ -448,8 +448,8 @@ function nextHolidayDate(fromStr) {
 function calcNextRecurring(t) {
   if(!t.recurring) return null;
   // ★ 修正：スペース・アンダースコア両方に対応
-  const rectype=(t.rectype||'interval').replace(' ','_');
-  if(rectype==='monthly_day') return nextMonthlyDay(t.monthday||25,t.excludeHoliday);
+  const rectype=(t.rectype||'interval').replace(/ /g,'_');
+  if(rectype==='monthly_day') return nextMonthlyDay(t.monthday||25,t.excludeHoliday,t.due);
   if(rectype==='weekly_dow'){
     if(!t.due||!t.dows||!t.dows.length) return nextWeeklyDow(t.dows||[]);
     const from=new Date(t.due+'T00:00:00');
@@ -547,7 +547,7 @@ function taskCard(t) {
   const memoStr=t.memo?`<div style="font-size:11px;color:var(--muted);margin-top:3px;">📝 ${t.memo}</div>`:'';
   const recStr=(()=>{
     if(!t.recurring) return '';
-    const rt=(t.rectype||'interval').replace(' ','_');
+    const rt=(t.rectype||'interval').replace(/ /g,'_');
     if(rt==='monthly_day') return `<span class="tag tag-recurring">毎月${t.monthday}日</span>`;
     if(rt==='weekly_dow'){const names=['日','月','火','水','木','金','土'];return `<span class="tag tag-recurring">毎週${(t.dows||[]).map(d=>names[d]).join('・')}</span>`;}
     return `<span class="tag tag-recurring">${t.interval}${t.unit==='day'?'日':t.unit==='week'?'週':t.unit==='month'?'ヶ月':t.unit==='month2'?'／2ヶ月':t.unit==='month6'?'／半年':t.unit==='year'?'／1年':'ヶ月'}ごと</span>`;
