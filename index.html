@@ -843,7 +843,7 @@ function todayStr() {
 }
 function daysUntil(d) {
   if (!d) return 999;
-  return Math.ceil((new Date(d) - new Date(todayStr())) / 86400000);
+  return Math.ceil((new Date(d + 'T00:00:00') - new Date(todayStr() + 'T00:00:00')) / 86400000);
 }
 function fmtDate(d) {
   if (!d) return '';
